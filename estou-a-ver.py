@@ -8,12 +8,21 @@ def get_arguments():
     parser = argparse.ArgumentParser(
         description='Directory management command-line utility')
 
-    parser.add_argument('-dir', '--directory', action='store', metavar='<path>', default=os.getcwd(),
-                        help='Specifies the directory to operate on (default=cwd)')
-    parser.add_argument('-r', '--remove', action='store_true',
-                        help='Remove the management')
-    parser.add_argument('-d', '--daemon', action='store_true',
-                        help='Starts as a daemon')
+    parser.add_argument(
+        '-dir', '--directory',
+        action='store',
+        metavar='<path>',
+        default=os.getcwd(),
+        help='Specifies which directory to operate on (default=cwd)')
+    parser.add_argument(
+        '-d', '--daemon',
+        action='store_true',
+        help='Starts management as a daemon process')
+    parser.add_argument(
+        '-r', '--remove',
+        action='store_true',
+        help='Removes management from the specified directory')
+
     return parser.parse_args()
 
 
@@ -28,7 +37,7 @@ def main(args):
 
 
 if __name__ == "__main__":
-        # Get commandline arguments
+    # Get commandline arguments
     args = get_arguments()
 
     # Define run type

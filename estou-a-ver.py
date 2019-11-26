@@ -17,8 +17,9 @@ def get_arguments():
 
 def main():
     args = get_arguments()
-    print("daemon:", args.daemon, "directory:",
-          args.directory, "remove:", args.remove)
+    print("directory:", args.directory)
+    print("remove:", args.remove)
+    print("daemon:", args.daemon)
 
 
 if __name__ == "__main__":

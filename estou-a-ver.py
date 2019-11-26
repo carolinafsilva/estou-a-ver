@@ -1,12 +1,22 @@
 import argparse
 import daemon
+import time
 import os
+
+PROGRAM_DESCRIPTION = 'Directory management command-line utility'
+
+DIRECTORY_HELP = 'Specifies which directory to operate on (default=cwd)'
+DAEMON_HELP = 'Starts management as a daemon process'
+REMOVE_HELP = 'Removes management from the specified directory'
+
+DAEMON_SLEEP_TIME = 300
 
 
 def get_arguments():
     '''This function returns options parsed from the commandline'''
     parser = argparse.ArgumentParser(
-        description='Directory management command-line utility')
+        description=PROGRAM_DESCRIPTION
+    )
 
     parser.add_argument(
         '-dir', '--directory',
@@ -14,28 +24,34 @@ def get_arguments():
         action='store',
         metavar='<path>',
         default=os.getcwd(),
-        help='Specifies which directory to operate on (default=cwd)')
+        help=DIRECTORY_HELP
+    )
     parser.add_argument(
         '-d', '--daemon',
         dest='daemon',
         action='store_true',
-        help='Starts management as a daemon process')
+        help=DAEMON_HELP
+    )
     parser.add_argument(
         '-r', '--remove',
         dest='remove',
         action='store_true',
-        help='Removes management from the specified directory')
+        help=REMOVE_HELP
+    )
 
     return parser.parse_args()
 
 
 def main_daemon(args):
     '''This function contains daemon program code'''
-    pass
+    while True:
+        # TODO: implement daemon (code that runs periodically)
+        time.sleep(DAEMON_SLEEP_TIME)
 
 
 def main(args):
     '''This function contains command-line program code'''
+    # TODO: implement command-line functionality
     pass
 
 

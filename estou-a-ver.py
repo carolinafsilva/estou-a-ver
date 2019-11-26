@@ -1,8 +1,10 @@
 import argparse
+import daemon
 import os
 
 
 def get_arguments():
+    '''This function returns options parsed from the commandline'''
     parser = argparse.ArgumentParser(
         description='Directory management command-line utility')
 
@@ -15,12 +17,25 @@ def get_arguments():
     return parser.parse_args()
 
 
-def main():
-    args = get_arguments()
-    print("directory:", args.directory)
-    print("remove:", args.remove)
-    print("daemon:", args.daemon)
+def main_daemon(args):
+    '''This function contains daemon program code'''
+    pass
+
+
+def main(args):
+    '''This function contains command-line program code'''
+    pass
 
 
 if __name__ == "__main__":
-    main()
+        # Get commandline arguments
+    args = get_arguments()
+
+    # Define run type
+    if args.daemon:
+        # Run as a daemon
+        with daemon.DaemonContext():
+            main_daemon(args)
+    else:
+        # Run interactively
+        main(args)

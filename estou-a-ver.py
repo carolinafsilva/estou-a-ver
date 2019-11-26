@@ -10,16 +10,19 @@ def get_arguments():
 
     parser.add_argument(
         '-dir', '--directory',
+        dest='directory',
         action='store',
         metavar='<path>',
         default=os.getcwd(),
         help='Specifies which directory to operate on (default=cwd)')
     parser.add_argument(
         '-d', '--daemon',
+        dest='daemon',
         action='store_true',
         help='Starts management as a daemon process')
     parser.add_argument(
         '-r', '--remove',
+        dest='remove',
         action='store_true',
         help='Removes management from the specified directory')
 
@@ -37,7 +40,7 @@ def main(args):
 
 
 if __name__ == "__main__":
-    # Get commandline arguments
+    # Get command-line arguments
     args = get_arguments()
 
     # Define run type

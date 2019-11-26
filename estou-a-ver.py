@@ -2,7 +2,7 @@ import argparse
 import os
 
 
-def getArguments():
+def get_arguments():
     parser = argparse.ArgumentParser(
         description='Directory management command-line utility')
 
@@ -16,8 +16,9 @@ def getArguments():
 
 
 def main():
-    args = getArguments()
-    print(args)
+    args = get_arguments()
+    print("daemon:", args.daemon, "directory:",
+          args.directory, "remove:", args.remove)
 
 
 if __name__ == "__main__":

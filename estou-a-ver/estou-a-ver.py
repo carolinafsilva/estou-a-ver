@@ -1,3 +1,5 @@
+import estouaver
+
 import argparse
 import daemon
 import time
@@ -52,6 +54,7 @@ def main_daemon(args):
 def main(args):
     '''This function contains command-line program code'''
     # TODO: implement command-line functionality
+    estouaver.estou_a_ver()
     pass
 
 

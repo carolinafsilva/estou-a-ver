@@ -1,9 +1,10 @@
 #include <Python.h>
 
 // Creating a C function that extends python:
-// static PyObject *function_name(PyObject *self, PyObject *args) {}
-// Py_ParseTuple(args, char *format, ...);
-// return Py_BuildValue(char *format, ...);
+// static PyObject *function_name(PyObject *self, PyObject *args) {
+//   Py_ParseTuple(args, char *format, ...);
+//   return Py_BuildValue(char *format, ...);
+// }
 
 static PyObject *estou_a_ver() {
   printf("estou-a-ver\n");

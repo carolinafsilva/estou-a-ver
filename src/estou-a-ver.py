@@ -58,7 +58,6 @@ def main(args):
     # TODO: implement command-line functionality
     print("directory: " + args.directory, "daemon: " +
           str(args.daemon), "remove: " + str(args.remove), sep='\n')
-    pass
 
 
 if __name__ == "__main__":

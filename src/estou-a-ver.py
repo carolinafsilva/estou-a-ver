@@ -48,25 +48,28 @@ def main_daemon(args):
     '''This function contains daemon program code'''
     while True:
         # TODO: implement daemon (code that runs periodically)
+        print("directory: " + args.directory, "daemon: " +
+              str(args.daemon), "remove: " + str(args.remove), sep='\n')
         time.sleep(DAEMON_SLEEP_TIME)
 
 
 def main(args):
     '''This function contains command-line program code'''
     # TODO: implement command-line functionality
-    estouaver.estou_a_ver()
+    print("directory: " + args.directory, "daemon: " +
+          str(args.daemon), "remove: " + str(args.remove), sep='\n')
     pass
 
 
 if __name__ == "__main__":
-    # Get command-line arguments
     args = get_arguments()
 
-    # Define run type
     if args.daemon:
-        # Run as a daemon
-        with daemon.DaemonContext():
+        log = open(os.getcwd() + '/daemon.log', 'w')
+        with daemon.DaemonContext(
+            stdout=log,
+            stderr=log
+        ):
             main_daemon(args)
     else:
-        # Run interactively
         main(args)

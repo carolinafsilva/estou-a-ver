@@ -1,7 +1,8 @@
 #include <Python.h>
 
 // Creating a C function that extends python:
-// static PyObject *function_name(PyObject *self, PyObject *args)
+// static PyObject *function_name(PyObject *self, PyObject *args) {}
+// return Py_BuildValue(char *format, ...);
 
 static PyObject *estou_a_ver() {
   printf("estou-a-ver\n");

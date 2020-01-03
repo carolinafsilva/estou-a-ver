@@ -9,17 +9,20 @@ import sys
 import os
 
 # ------------------------------------------------------------------------------
-# Strings
+# Global Variables
 
 DATABASE_NAME = "database.db"
+
+DAEMON_SLEEP_TIME = 300
+
+# ------------------------------------------------------------------------------
+# Strings
 
 PROGRAM_DESCRIPTION = 'Directory management command-line utility'
 
 DIRECTORY_HELP = 'Specifies which directory to operate on (default=cwd)'
 DAEMON_HELP = 'Starts management as a daemon process'
 REMOVE_HELP = 'Removes management from the specified directory'
-
-DAEMON_SLEEP_TIME = 300
 
 # ------------------------------------------------------------------------------
 # Function Definitions

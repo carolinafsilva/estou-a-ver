@@ -60,11 +60,32 @@ def sha256Getter():  # Calcula valores de hash SHA256 para todos os ficheiros e 
     f_out.close()
 
 
+# guardar lista de ficheiros na observação anterior
+holder = dict([(f, None) for f in os.listdir(args.directory)])
+
+
+def directoryMonitor(holder):       # Verificar se existe alterações dentro da diretoria
+    # guardar lista de ficheiros na observação atual
+    current = dict([(f, None) for f in os.listdir(args.directory)])
+    # Ver se algum ficheiro foi adicionado
+    adicionado = [f for f in current if not f in holder]
+    # Ver se algum ficheiro foi removido
+    removido = [f for f in holder if not f in current]
+    if adicionado:
+        print("Adicionado: ", ", ".join(adicionado))
+    if removido:
+        print("Removido: ", ", ".join(removido))
+    holder = current
+    sha256Getter()
+
+
 def main_daemon(args):
     '''This function contains daemon program code'''
     # TODO: implement daemon (code that runs periodically)
     print("directory: " + args.directory, "daemon: " +
           str(args.daemon), "remove: " + str(args.remove), sep='\n')
+
+    directoryMonitor(holder)
 
 
 def main(args):

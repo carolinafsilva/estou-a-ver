@@ -1,12 +1,12 @@
 # ------------------------------------------------------------------------------
 # Libraries
 
+import subprocess
 import argparse
 import daemon
 import time
-import os
-import subprocess
 import sys
+import os
 
 # ------------------------------------------------------------------------------
 # Strings

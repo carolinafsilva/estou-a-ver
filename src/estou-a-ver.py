@@ -62,16 +62,14 @@ def sha256Getter():  # Calcula valores de hash SHA256 para todos os ficheiros e 
 
 def main_daemon(args):
     '''This function contains daemon program code'''
-    while True:
-        # TODO: implement daemon (code that runs periodically)
-        print("directory: " + args.directory, "daemon: " +
-              str(args.daemon), "remove: " + str(args.remove), sep='\n')
-        time.sleep(DAEMON_SLEEP_TIME)
+    # TODO: implement daemon (code that runs periodically)
+    print("directory: " + args.directory, "daemon: " +
+          str(args.daemon), "remove: " + str(args.remove), sep='\n')
 
 
 def main(args):
-    '''This function contains command-line program code'''
-    # TODO: implement command-line functionality
+    '''This function contains interactive program code'''
+    # TODO: implement functionality
     print("directory: " + args.directory, "daemon: " +
           str(args.daemon), "remove: " + str(args.remove), sep='\n')
 
@@ -85,6 +83,8 @@ if __name__ == "__main__":
             stdout=log,
             stderr=log
         ):
-            main_daemon(args)
+            while True:
+                main_daemon(args)
+                time.sleep(DAEMON_SLEEP_TIME)
     else:
         main(args)

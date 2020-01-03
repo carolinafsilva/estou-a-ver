@@ -1,4 +1,5 @@
-import estouaver
+# ------------------------------------------------------------------------------
+# Libraries
 
 import argparse
 import daemon
@@ -7,6 +8,10 @@ import os
 import subprocess
 import sys
 
+# ------------------------------------------------------------------------------
+# Strings
+
+DATABASE_NAME = "database.db"
 
 PROGRAM_DESCRIPTION = 'Directory management command-line utility'
 
@@ -15,6 +20,14 @@ DAEMON_HELP = 'Starts management as a daemon process'
 REMOVE_HELP = 'Removes management from the specified directory'
 
 DAEMON_SLEEP_TIME = 300
+
+# ------------------------------------------------------------------------------
+# Function Definitions
+
+
+def get_files(directory):
+    '''This function returns a list of files from the directory'''
+    return [f for f in os.listdir(directory) if os.path.isfile(f)]
 
 
 def get_arguments():
@@ -47,53 +60,65 @@ def get_arguments():
     return parser.parse_args()
 
 
-def sha256Getter():  # Calcula valores de hash SHA256 para todos os ficheiros e guarda-os num ficheiro .txt
-    f_out = open("datab.txt", "w")  # Ficheiro de output
-    path = args.directory           # Obter diretoria
-    for fname in os.listdir(path):  # Percorrer todos os ficheiros da diretoria
-        os.chdir(path)
-        with open(fname, "rb") as f:
-            output = subprocess.Popen(  # SHA256 do openssl e retornar resultado
-                ['openssl', 'dgst', '-sha256', fname], stdout=subprocess.PIPE, universal_newlines=True)
-            # Escrever no ficheiro
-            f_out.write('%s\n' % (output.stdout.read()))
-    f_out.close()
+def SHA256(filename):
+    '''This function returns the SHA256 of the filename'''
+    output = subprocess.Popen(
+        ['openssl', 'dgst', '-sha256', filename],
+        stdout=subprocess.PIPE,
+        universal_newlines=True)
+    return output.stdout.read()
 
 
-# guardar lista de ficheiros na observação anterior
-holder = dict([(f, None) for f in os.listdir(args.directory)])
+def create_database(args):
+    '''This function calculates hashes SHA256 for all files inside a directory and saves them to the database'''
+    # Open database file
+    db = open(DATABASE_NAME, "w")
+    # Go to directory
+    os.chdir(args.directory)
+    # For each file in directory
+    for filename in get_files(args.directory):
+        # Get hash
+        output = SHA256(filename)
+        # Write to database
+        db.write(output)
+    db.close()
 
 
-def directoryMonitor(holder):       # Verificar se existe alterações dentro da diretoria
-    # guardar lista de ficheiros na observação atual
-    current = dict([(f, None) for f in os.listdir(args.directory)])
-    # Ver se algum ficheiro foi adicionado
-    adicionado = [f for f in current if not f in holder]
-    # Ver se algum ficheiro foi removido
-    removido = [f for f in holder if not f in current]
-    if adicionado:
-        print("Adicionado: ", ", ".join(adicionado))
-    if removido:
-        print("Removido: ", ", ".join(removido))
-    holder = current
-    sha256Getter()
+# def directory_monitor():
+#     '''This function checks for changes inside directory'''
+#     # guardar lista de ficheiros na observação atual
+#     current = get_managed_files()
+#     # Ver se algum ficheiro foi adicionado
+#     adicionado = [f for f in current if not f in managed_files]
+#     # Ver se algum ficheiro foi removido
+#     removido = [f for f in managed_files if not f in current]
+#     if adicionado:
+#         print("Adicionado: ", adicionado)
+#     if removido:
+#         print("Removido: ", removido)
+#     managed_files = current
+#     db_write_hashes()
 
 
 def main_daemon(args):
     '''This function contains daemon program code'''
-    # TODO: implement daemon (code that runs periodically)
+    # Debug info
     print("directory: " + args.directory, "daemon: " +
           str(args.daemon), "remove: " + str(args.remove), sep='\n')
-
-    directoryMonitor(holder)
+    # TODO: implement daemon (code that runs periodically)
 
 
 def main(args):
     '''This function contains interactive program code'''
-    # TODO: implement functionality
+    # Debug info
     print("directory: " + args.directory, "daemon: " +
           str(args.daemon), "remove: " + str(args.remove), sep='\n')
+    # TODO: implement functionality
+    create_database(args)
 
+
+# ------------------------------------------------------------------------------
+# Entry Point
 
 if __name__ == "__main__":
     args = get_arguments()

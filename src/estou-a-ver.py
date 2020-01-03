@@ -4,6 +4,9 @@ import argparse
 import daemon
 import time
 import os
+import subprocess
+import sys
+
 
 PROGRAM_DESCRIPTION = 'Directory management command-line utility'
 
@@ -42,6 +45,19 @@ def get_arguments():
     )
 
     return parser.parse_args()
+
+
+def sha256Getter():  # Calcula valores de hash SHA256 para todos os ficheiros e guarda-os num ficheiro .txt
+    f_out = open("datab.txt", "w")  # Ficheiro de output
+    path = args.directory           # Obter diretoria
+    for fname in os.listdir(path):  # Percorrer todos os ficheiros da diretoria
+        os.chdir(path)
+        with open(fname, "rb") as f:
+            output = subprocess.Popen(  # SHA256 do openssl e retornar resultado
+                ['openssl', 'dgst', '-sha256', fname], stdout=subprocess.PIPE, universal_newlines=True)
+            # Escrever no ficheiro
+            f_out.write('%s\n' % (output.stdout.read()))
+    f_out.close()
 
 
 def main_daemon(args):

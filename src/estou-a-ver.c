@@ -1,4 +1,5 @@
 #include <Python.h>
+#include <openssl/sha.h>
 
 // Creating a C function that extends python:
 // static PyObject *function_name(PyObject *self, PyObject *args) {
@@ -6,7 +7,8 @@
 //   return Py_BuildValue(char *format, ...);
 // }
 
-static PyObject *estou_a_ver() {
+static PyObject *estou_a_ver()
+{
   printf("estou-a-ver\n");
   return Py_None;
 }
@@ -25,3 +27,4 @@ static struct PyModuleDef module = {PyModuleDef_HEAD_INIT, "estouaver",
                                     methods};
 
 PyMODINIT_FUNC PyInit_estouaver(void) { return PyModule_Create(&module); }
+

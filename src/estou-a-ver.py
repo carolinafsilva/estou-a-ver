@@ -72,6 +72,15 @@ def SHA256(filename):
     return output.stdout.read()
 
 
+def AES_128_CBC(filename, hex_key, iv):
+    '''This function encrypts the filename with AES-128-CBC'''
+    subprocess.Popen(
+        ['openssl', 'enc', '-aes-128-cbc', '-K',
+            hex_key, '-in', filename, '-out', filename, '-iv', iv],
+        stdout=subprocess.PIPE,
+        universal_newlines=True)
+
+
 def create_database(args):
     '''This function calculates hashes SHA256 for all files inside a directory and saves them to the database'''
     # Open database file

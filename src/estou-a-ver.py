@@ -15,7 +15,8 @@ import os
 
 PLATFORM = platform.system()
 
-DATABASE_NAME = ".database.aes"
+DATABASE_NAME = '.database.aes'
+SALT_NAME = '.salt'
 
 DATABASE_TUPLE = None
 
@@ -129,7 +130,7 @@ def PBKDF2(salt, password):
     global SALT
     SALT = salt
     # Update .salt file
-    f = open('.salt', 'w')
+    f = open(SALT_NAME, 'w')
     f.write(salt)
     # Return tuple
     return key, iv
@@ -157,6 +158,17 @@ def decrypt_AES_128_CBC(filename, key, iv):
     return output
 
 
+def generate_RSA():
+    '''This function generates a RSA key pair'''
+    output = subprocess.run(
+        ['openssl', 'rsautl', '-verify', '-inkey', pk, '-pubin'],
+        input=rsa_cipher,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        universal_newlines=True)
+    return output
+
+
 def decrypt_signature_RSA(rsa_cipher, pk):
     '''This function decrypts the digital signature'''
     output = subprocess.run(
@@ -173,9 +185,15 @@ def verify_RSA(filename, rsa_cipher, pk):
     return SHA256(filename) == decrypt_signature_RSA(rsa_cipher, pk)
 
 
-def sign_RSA():
+def sign_RSA(hash, sk):
     '''This function signs with RSA'''
-    pass
+    output = subprocess.run(
+        ['openssl', 'rsautl', '-sign', '-inkey', sk],
+        input=hash,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        universal_newlines=True)
+    return output
 
 
 def create_hash_list(directory):
@@ -252,8 +270,8 @@ if __name__ == "__main__":
     os.chdir(args.directory)
 
     # Read salt
-    if os.path.isfile('.salt'):
-        f = open('.salt', 'r')
+    if os.path.isfile(SALT_NAME):
+        f = open(SALT_NAME, 'r')
         SALT = f.read()
 
     # Read password

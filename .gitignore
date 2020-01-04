@@ -1,5 +1,7 @@
 # MacOS
 .DS_Store
+database.aes
+.salt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

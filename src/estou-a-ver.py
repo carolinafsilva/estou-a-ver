@@ -17,7 +17,9 @@ PLATFORM = platform.system()
 
 DATABASE_NAME = "database.aes"
 
-DATABASE_TRIPLE = None
+DATABASE_TUPLE = None
+
+SALT = None
 
 DAEMON_SLEEP_TIME = 300
 
@@ -138,6 +140,7 @@ def decrypt_AES_128_CBC(filename, key, iv):
         stdout=subprocess.PIPE)
     return output
 
+
 def decrypt_RSA(filename, key):
     '''This function decrypts with RSA'''
     output = subprocess.run(
@@ -162,19 +165,21 @@ def create_hash_list(directory):
 
 def create_database(directory, password):
     '''This function creates an encrypted database of file hashes'''
-    # Access global variable
-    global DATABASE_TRIPLE
+    # Access global variables
+    global DATABASE_TUPLE
+    global SALT
     # Generate salt, key, iv
     output = PBKDF2(None, password)
     # Parse output
     output = output.stdout.rstrip().split('\n')
-    salt, key, iv = (output[0].split('=')[1],
-                     output[1].split('=')[1],
-                     output[2].split('=')[1])
-    # Store triple
-    DATABASE_TRIPLE = salt, key, iv
-    # Go to directory
-    os.chdir(directory)
+    salt = output[0].split('=')[1]
+    key, iv = (output[1].split('=')[1],
+               output[2].split('=')[1])
+    # Store tuple
+    DATABASE_TUPLE = key, iv
+    # Save salt
+    f = open('.salt', 'w')
+    f.write(salt)
     # Database data
     hashes = create_hash_list(directory)
     # TODO: Sign hashes
@@ -185,10 +190,8 @@ def create_database(directory, password):
 
 def read_database(directory):
     '''This function returns a list of hashes read from the encrypted database'''
-    # Get triple
-    salt, key, iv = DATABASE_TRIPLE
-    # Go to directory
-    os.chdir(directory)
+    # Get tuple
+    key, iv = DATABASE_TUPLE
     # Decrypt the data
     output = decrypt_AES_128_CBC(DATABASE_NAME, key, iv)
     # Return output
@@ -202,8 +205,6 @@ def main_daemon(args):
 
 def main(args):
     '''This function contains interactive program code'''
-    # Read password
-    password = getpass.getpass()
     # Create Database
     create_database(args.directory, password)
     # Read Database
@@ -217,10 +218,27 @@ def main(args):
 
 if __name__ == "__main__":
 
+    # Get arguments
     args = get_arguments()
 
+    # Go to directory
+    os.chdir(args.directory)
+
+    # Read salt
+    if os.path.isfile('.salt'):
+        f = open('.salt', 'r')
+        SALT = f.read()
+
+    # Read password
+    password = getpass.getpass()
+
+    # If daemon flag set
     if args.daemon:
+
+        # Debug info
         log = open(os.getcwd() + '/daemon.log', 'w')
+
+        # Start daemon
         with daemon.DaemonContext(
             stdout=log,
             stderr=log

@@ -15,7 +15,7 @@ import os
 
 PLATFORM = platform.system()
 
-DATABASE_NAME = "database.aes"
+DATABASE_NAME = ".database.aes"
 
 DATABASE_TUPLE = None
 
@@ -209,7 +209,8 @@ def main(args):
     global DATABASE_TUPLE
     DATABASE_TUPLE = PBKDF2(SALT, password)
     # Create Database
-    # create_database(args.directory, password)
+    if not os.path.isfile(DATABASE_NAME):
+        create_database(args.directory, password)
     # Read Database
     db = read_database(args.directory)
     # Debug info

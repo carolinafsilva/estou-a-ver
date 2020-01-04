@@ -2,7 +2,7 @@
 .DS_Store
 
 # Project
-database.aes
+.database.aes
 .salt
 
 # Byte-compiled / optimized / DLL files

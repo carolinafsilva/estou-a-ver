@@ -158,9 +158,25 @@ def decrypt_AES_128_CBC(filename, key, iv):
     return output
 
 
-def generate_RSA():
+def generate_RSA(size):
     '''This function generates a RSA key pair'''
-    pass
+    output = subprocess.run(
+        ['openssl', 'genrsa', size],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        universal_newlines=True)
+    return output
+
+
+def extract_pk_RSA(filename, key_pair):
+    '''This function extracts a public key from a RSA key pair'''
+    output = subprocess.run(
+        ['openssl', 'rsa', '-out', filename, '-pubout'],
+        input=key_pair,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        universal_newlines=True)
+    return output
 
 
 def decrypt_signature_RSA(rsa_cipher, pk):

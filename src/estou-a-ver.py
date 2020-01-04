@@ -80,6 +80,7 @@ def SHA256(filename):
     output = subprocess.run(
         ['openssl', 'dgst', '-sha256', filename],
         stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
         universal_newlines=True)
     return output
 
@@ -92,6 +93,7 @@ def PBKDF2(salt, password):
             output = subprocess.run(
                 ['openssl', 'enc', '-aes-128-cbc', '-k', password, '-P'],
                 stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
                 universal_newlines=True)
         # Openssl
         elif PLATFORM == 'Linux':
@@ -99,6 +101,7 @@ def PBKDF2(salt, password):
                 ['openssl', 'enc', '-aes-128-cbc',
                     '-k', password, '-P', '-pbkdf2'],
                 stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
                 universal_newlines=True)
     else:
         # Libressl
@@ -107,6 +110,7 @@ def PBKDF2(salt, password):
                 ['openssl', 'enc', '-aes-128-cbc',
                     '-k', password, '-P', '-S', salt],
                 stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
                 universal_newlines=True)
         # Openssl
         elif PLATFORM == 'Linux':
@@ -114,6 +118,7 @@ def PBKDF2(salt, password):
                 ['openssl', 'enc', '-aes-128-cbc',
                     '-k', password, '-P', '-S', salt, '-pbkdf2'],
                 stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
                 universal_newlines=True)
     # Parse output
     output = output.stdout.rstrip().split('\n')
@@ -137,6 +142,7 @@ def encrypt_AES_128_CBC(filename, content, key, iv):
             key, '-out', filename, '-iv', iv],
         input=content,
         stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
         universal_newlines=True)
     return output
 
@@ -146,7 +152,8 @@ def decrypt_AES_128_CBC(filename, key, iv):
     output = subprocess.run(
         ['openssl', 'enc', '-aes-128-cbc', '-d', '-K',
             key, '-in', filename, '-iv', iv],
-        stdout=subprocess.PIPE)
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL)
     return output
 
 
@@ -155,7 +162,9 @@ def decrypt_RSA(filename, key):
     output = subprocess.run(
         ['openssl', 'rsautl', '-decrypt', '-in',
             filename, '-inkey', key],
-        stdout=subprocess.PIPE)
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        universal_newlines=True)
     return output
 
 
@@ -195,7 +204,11 @@ def read_database(directory):
     # Decrypt the data
     output = decrypt_AES_128_CBC(DATABASE_NAME, key, iv)
     # Return output
-    return output.stdout.decode('utf-8').split('\n')
+    try:
+        output = output.stdout.decode('utf-8').split('\n')
+    except:
+        output = 'Incorrect password'
+    return output
 
 
 def main_daemon(args):

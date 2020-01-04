@@ -78,7 +78,7 @@ def SHA256(filename):
     return output
 
 
-def get_salt_key_iv(password):
+def PBKDF2(password):
     '''This function generates a salt, key, iv pair'''
     output = subprocess.run(
         ['openssl', 'enc', '-aes-256-cbc', '-k', password, '-P'],
@@ -98,9 +98,8 @@ def encrypt_AES_128_CBC(filename, content, salt, key, iv):
     return output
 
 
-def decrypt_AES_128_CBC(filename):
+def decrypt_AES_128_CBC(filename, salt, key, iv):
     '''This function decrypts with AES-128-CBC'''
-    salt, key, iv = DATABASE_INFO
     output = subprocess.run(
         ['openssl', 'enc', '-aes-128-cbc', '-d', '-K',
             key, '-in', filename, '-iv', iv, '-S', salt],
@@ -109,7 +108,7 @@ def decrypt_AES_128_CBC(filename):
 
 
 def create_database(args, password):
-    '''This function calculates hashes SHA256 for all files inside a directory and saves them to the database'''
+    '''This function creates an encrypted database of file hashes'''
     # Access global variable
     global DATABASE_INFO
     # Go to directory
@@ -123,24 +122,28 @@ def create_database(args, password):
         # Add to list
         hashes += output.stdout
     # Get encryption info
-    output = get_salt_key_iv(password)
+    output = PBKDF2(password)
     # Parse output
     output = output.stdout.split('\n')
-    salt = output[0].split('=')[1]
-    key = output[1].split('=')[1]
-    iv = output[2].split('=')[1]
+    salt, key, iv = (output[0].split('=')[1],
+                     output[1].split('=')[1],
+                     output[2].split('=')[1])
     # Store info
     DATABASE_INFO = salt, key, iv
     # Encrypt the data
-    output = encrypt_AES_128_CBC(DATABASE_NAME, hashes, salt, key, iv)
+    encrypt_AES_128_CBC(DATABASE_NAME, hashes, salt, key, iv)
 
 
 def read_database(args):
+    '''This function returns a list of hashes read from the encrypted database'''
     # Go to directory
     os.chdir(args.directory)
+    # Get info
+    salt, key, iv = DATABASE_INFO
     # Decrypt the data
-    output = decrypt_AES_128_CBC(DATABASE_NAME)
-    return output.stdout.decode('utf-8')
+    output = decrypt_AES_128_CBC(DATABASE_NAME, salt, key, iv)
+    # Return output
+    return output.stdout.decode('utf-8').rstrip()
 
 
 def main_daemon(args):

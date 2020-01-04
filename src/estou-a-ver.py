@@ -3,6 +3,7 @@
 
 import subprocess
 import argparse
+import getpass
 import daemon
 import time
 import sys
@@ -121,6 +122,8 @@ def create_database(args, password):
         output = SHA256(filename)
         # Add to list
         hashes += output.stdout
+    # Format data
+    hashes = hashes.rstrip()
     # Get encryption info
     output = PBKDF2(password)
     # Parse output
@@ -143,7 +146,7 @@ def read_database(args):
     # Decrypt the data
     output = decrypt_AES_128_CBC(DATABASE_NAME, salt, key, iv)
     # Return output
-    return output.stdout.decode('utf-8').rstrip()
+    return output.stdout.decode('utf-8')
 
 
 def main_daemon(args):
@@ -160,7 +163,7 @@ def main(args):
     print("directory: " + args.directory, "daemon: " +
           str(args.daemon), "remove: " + str(args.remove), sep='\n')
     # TODO: implement functionality
-    password = input("Insert a password for database: ")
+    password = getpass.getpass()
     create_database(args, password)
     db = read_database(args)
     print(db)

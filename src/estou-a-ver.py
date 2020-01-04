@@ -157,15 +157,25 @@ def decrypt_AES_128_CBC(filename, key, iv):
     return output
 
 
-def decrypt_RSA(filename, key):
-    '''This function decrypts with RSA'''
+def decrypt_signature_RSA(rsa_cipher, pk):
+    '''This function decrypts the digital signature'''
     output = subprocess.run(
-        ['openssl', 'rsautl', '-decrypt', '-in',
-            filename, '-inkey', key],
+        ['openssl', 'rsautl', '-verify', '-inkey', pk, '-pubin'],
+        input=rsa_cipher,
         stdout=subprocess.PIPE,
         stderr=subprocess.DEVNULL,
         universal_newlines=True)
     return output
+
+
+def verify_RSA(filename, rsa_cipher, pk):
+    '''This function verifies signatures'''
+    return SHA256(filename) == decrypt_signature_RSA(rsa_cipher, pk)
+
+
+def sign_RSA():
+    '''This function signs with RSA'''
+    pass
 
 
 def create_hash_list(directory):

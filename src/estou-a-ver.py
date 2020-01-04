@@ -108,6 +108,19 @@ def decrypt_AES_128_CBC(filename, salt, key, iv):
     return output
 
 
+def create_hash_list(directory):
+    '''This function returns a list of hashes'''
+    hashes = ''
+    # For each file in directory
+    for filename in get_files(directory):
+        # Get hash
+        output = SHA256(filename)
+        # Add to list
+        hashes += output.stdout
+    # Format data
+    return hashes.rstrip().split('\n')
+
+
 def create_database(args, password):
     '''This function creates an encrypted database of file hashes'''
     # Access global variable
@@ -115,15 +128,8 @@ def create_database(args, password):
     # Go to directory
     os.chdir(args.directory)
     # Database data
-    hashes = ''
-    # For each file in directory
-    for filename in get_files(args.directory):
-        # Get hash
-        output = SHA256(filename)
-        # Add to list
-        hashes += output.stdout
-    # Format data
-    hashes = hashes.rstrip()
+    hashes = create_hash_list(args.directory)
+    data = '\n'.join(hashes)
     # Get encryption info
     output = PBKDF2(password)
     # Parse output
@@ -134,7 +140,7 @@ def create_database(args, password):
     # Store info
     DATABASE_INFO = salt, key, iv
     # Encrypt the data
-    encrypt_AES_128_CBC(DATABASE_NAME, hashes, salt, key, iv)
+    encrypt_AES_128_CBC(DATABASE_NAME, data, salt, key, iv)
 
 
 def read_database(args):
@@ -146,7 +152,7 @@ def read_database(args):
     # Decrypt the data
     output = decrypt_AES_128_CBC(DATABASE_NAME, salt, key, iv)
     # Return output
-    return output.stdout.decode('utf-8')
+    return output.stdout.decode('utf-8').split('\n')
 
 
 def main_daemon(args):

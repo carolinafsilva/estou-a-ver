@@ -6,6 +6,7 @@ import platform
 import argparse
 import getpass
 import daemon
+import shutil
 import time
 import sys
 import os
@@ -266,6 +267,13 @@ def read_database(directory):
     except:
         output = 'Incorrect password'
     return output
+
+
+def clone_database():
+    '''This function creates a clone backup for the database'''
+    srcPath = DATABASE_NAME[1:]        # fixed source path
+    destPath = '.database_backup.aes'  # fixed destination path
+    shutil.copy(srcPath, destPath)
 
 
 def main_daemon(args):

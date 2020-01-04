@@ -271,8 +271,8 @@ def read_database(directory):
 
 def clone_database():
     '''This function creates a clone backup for the database'''
-    srcPath = DATABASE_NAME[1:]        # fixed source path
-    destPath = '.database_backup.aes'  # fixed destination path
+    srcPath = "../"+DATABASE_NAME[1:]        # fixed source path
+    destPath = '../.database_backup.aes'  # fixed destination path
     shutil.copy(srcPath, destPath)
 
 

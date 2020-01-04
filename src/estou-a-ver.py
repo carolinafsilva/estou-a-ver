@@ -179,6 +179,18 @@ def extract_pk_RSA(filename, key_pair):
     return output
 
 
+def sign_RSA(sk, h):
+    # TODO: fix sk
+    '''This function signs with RSA'''
+    output = subprocess.run(
+        ['openssl', 'rsautl', '-sign', '-inkey', sk],
+        input=h,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        universal_newlines=True)
+    return output
+
+
 def decrypt_signature_RSA(rsa_cipher, pk):
     '''This function decrypts the digital signature'''
     output = subprocess.run(
@@ -195,28 +207,28 @@ def verify_RSA(filename, rsa_cipher, pk):
     return SHA256(filename) == decrypt_signature_RSA(rsa_cipher, pk)
 
 
-def sign_RSA(hash, sk):
-    '''This function signs with RSA'''
-    output = subprocess.run(
-        ['openssl', 'rsautl', '-sign', '-inkey', sk],
-        input=hash,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.DEVNULL,
-        universal_newlines=True)
-    return output
-
-
 def create_hash_list(directory):
-    '''This function returns a list of hashes'''
-    hashes = ''
+    '''This function returns a list of filename, hash tuples'''
+    hashes = []
     # For each file in directory
     for filename in get_files(directory):
         # Get hash
         output = SHA256(filename)
+        output = output.stdout.rstrip()
         # Add to list
-        hashes += output.stdout
-    # Format data
-    return hashes.rstrip().split('\n')
+        hashes.append((filename, output))
+    return hashes
+
+
+def create_signature_list(sk, hashes):
+    '''This function returns a list of signatures'''
+    signed = []
+    for filename, h in hashes:
+        output = sign_RSA(sk, h)
+        print(output)
+        signature = output.stdout
+        signed.append((filename, signature))
+    return signed
 
 
 def create_database(directory, password):
@@ -225,14 +237,21 @@ def create_database(directory, password):
     global DATABASE_TUPLE
     # Generate key, iv
     key, iv = PBKDF2(None, password)
+    # Generate rsa
+    output = generate_RSA('2048')
+    rsa = output.stdout
+    # Extract public key
+    extract_pk_RSA('.pk.pem', rsa)
     # Store tuple
     DATABASE_TUPLE = key, iv
-    # Database data
+    # Get hashes
     hashes = create_hash_list(directory)
-    # TODO: Sign hashes
-    data = '\n'.join(hashes)
+    # Sign hashes
+    signed = create_signature_list(rsa, hashes)
+    # Join string
+    signed = '\n'.join([d + "," + s for d, s in signed])
     # Encrypt the data
-    encrypt_AES_128_CBC(DATABASE_NAME, data, key, iv)
+    encrypt_AES_128_CBC(DATABASE_NAME, signed, key, iv)
 
 
 def read_database(directory):

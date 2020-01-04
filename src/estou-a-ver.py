@@ -85,7 +85,7 @@ def SHA256(filename):
 
 
 def PBKDF2(salt, password):
-    '''This function returns salt, key, iv triplet'''
+    '''This function returns key, iv tuple'''
     if salt == None:
         # Libressl
         if PLATFORM == 'Darwin':
@@ -93,7 +93,6 @@ def PBKDF2(salt, password):
                 ['openssl', 'enc', '-aes-128-cbc', '-k', password, '-P'],
                 stdout=subprocess.PIPE,
                 universal_newlines=True)
-            return output
         # Openssl
         elif PLATFORM == 'Linux':
             output = subprocess.run(
@@ -101,7 +100,6 @@ def PBKDF2(salt, password):
                     '-k', password, '-P', '-pbkdf2'],
                 stdout=subprocess.PIPE,
                 universal_newlines=True)
-            return output
     else:
         # Libressl
         if PLATFORM == 'Darwin':
@@ -110,7 +108,6 @@ def PBKDF2(salt, password):
                     '-k', password, '-P', '-S', salt],
                 stdout=subprocess.PIPE,
                 universal_newlines=True)
-            return output
         # Openssl
         elif PLATFORM == 'Linux':
             output = subprocess.run(
@@ -118,7 +115,19 @@ def PBKDF2(salt, password):
                     '-k', password, '-P', '-S', salt, '-pbkdf2'],
                 stdout=subprocess.PIPE,
                 universal_newlines=True)
-            return output
+    # Parse output
+    output = output.stdout.rstrip().split('\n')
+    salt = output[0].split('=')[1]
+    key, iv = (output[1].split('=')[1],
+               output[2].split('=')[1])
+    # Save SALT
+    global SALT
+    SALT = salt
+    # Update .salt file
+    f = open('.salt', 'w')
+    f.write(salt)
+    # Return tuple
+    return key, iv
 
 
 def encrypt_AES_128_CBC(filename, content, key, iv):
@@ -167,19 +176,10 @@ def create_database(directory, password):
     '''This function creates an encrypted database of file hashes'''
     # Access global variables
     global DATABASE_TUPLE
-    global SALT
-    # Generate salt, key, iv
-    output = PBKDF2(None, password)
-    # Parse output
-    output = output.stdout.rstrip().split('\n')
-    salt = output[0].split('=')[1]
-    key, iv = (output[1].split('=')[1],
-               output[2].split('=')[1])
+    # Generate key, iv
+    key, iv = PBKDF2(None, password)
     # Store tuple
     DATABASE_TUPLE = key, iv
-    # Save salt
-    f = open('.salt', 'w')
-    f.write(salt)
     # Database data
     hashes = create_hash_list(directory)
     # TODO: Sign hashes
@@ -205,8 +205,11 @@ def main_daemon(args):
 
 def main(args):
     '''This function contains interactive program code'''
+    # Access
+    global DATABASE_TUPLE
+    DATABASE_TUPLE = PBKDF2(SALT, password)
     # Create Database
-    create_database(args.directory, password)
+    # create_database(args.directory, password)
     # Read Database
     db = read_database(args.directory)
     # Debug info

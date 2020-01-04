@@ -160,13 +160,7 @@ def decrypt_AES_128_CBC(filename, key, iv):
 
 def generate_RSA():
     '''This function generates a RSA key pair'''
-    output = subprocess.run(
-        ['openssl', 'rsautl', '-verify', '-inkey', pk, '-pubin'],
-        input=rsa_cipher,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.DEVNULL,
-        universal_newlines=True)
-    return output
+    pass
 
 
 def decrypt_signature_RSA(rsa_cipher, pk):

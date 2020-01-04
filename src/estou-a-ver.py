@@ -2,6 +2,7 @@
 # Libraries
 
 import subprocess
+import platform
 import argparse
 import getpass
 import daemon
@@ -12,11 +13,13 @@ import os
 # ------------------------------------------------------------------------------
 # Global Variables
 
-DATABASE_NAME = "database.db"
+PLATFORM = platform.system()
+
+DATABASE_NAME = "database.aes"
+
+DATABASE_TRIPLE = None
 
 DAEMON_SLEEP_TIME = 300
-
-DATABASE_INFO = None
 
 # ------------------------------------------------------------------------------
 # Data Structures
@@ -79,31 +82,59 @@ def SHA256(filename):
     return output
 
 
-def PBKDF2(password):
-    '''This function generates a salt, key, iv pair'''
-    output = subprocess.run(
-        ['openssl', 'enc', '-aes-256-cbc', '-k', password, '-P'],
-        stdout=subprocess.PIPE,
-        universal_newlines=True)
-    return output
+def PBKDF2(salt, password):
+    '''This function returns salt, key, iv triplet'''
+    if salt == None:
+        # Libressl
+        if PLATFORM == 'Darwin':
+            output = subprocess.run(
+                ['openssl', 'enc', '-aes-128-cbc', '-k', password, '-P'],
+                stdout=subprocess.PIPE,
+                universal_newlines=True)
+            return output
+        # Openssl
+        elif PLATFORM == 'Linux':
+            output = subprocess.run(
+                ['openssl', 'enc', '-aes-128-cbc',
+                    '-k', password, '-P', '-pbkdf2'],
+                stdout=subprocess.PIPE,
+                universal_newlines=True)
+            return output
+    else:
+        # Libressl
+        if PLATFORM == 'Darwin':
+            output = subprocess.run(
+                ['openssl', 'enc', '-aes-128-cbc',
+                    '-k', password, '-P', '-S', salt],
+                stdout=subprocess.PIPE,
+                universal_newlines=True)
+            return output
+        # Openssl
+        elif PLATFORM == 'Linux':
+            output = subprocess.run(
+                ['openssl', 'enc', '-aes-128-cbc',
+                    '-k', password, '-P', '-S', salt, '-pbkdf2'],
+                stdout=subprocess.PIPE,
+                universal_newlines=True)
+            return output
 
 
-def encrypt_AES_128_CBC(filename, content, salt, key, iv):
+def encrypt_AES_128_CBC(filename, content, key, iv):
     '''This function encrypts with AES-128-CBC'''
     output = subprocess.run(
         ['openssl', 'enc', '-aes-128-cbc', '-K',
-            key, '-out', filename, '-iv', iv, '-S', salt],
+            key, '-out', filename, '-iv', iv],
         input=content,
         stdout=subprocess.PIPE,
         universal_newlines=True)
     return output
 
 
-def decrypt_AES_128_CBC(filename, salt, key, iv):
+def decrypt_AES_128_CBC(filename, key, iv):
     '''This function decrypts with AES-128-CBC'''
     output = subprocess.run(
         ['openssl', 'enc', '-aes-128-cbc', '-d', '-K',
-            key, '-in', filename, '-iv', iv, '-S', salt],
+            key, '-in', filename, '-iv', iv],
         stdout=subprocess.PIPE)
     return output
 
@@ -121,57 +152,55 @@ def create_hash_list(directory):
     return hashes.rstrip().split('\n')
 
 
-def create_database(args, password):
+def create_database(directory, password):
     '''This function creates an encrypted database of file hashes'''
     # Access global variable
-    global DATABASE_INFO
-    # Go to directory
-    os.chdir(args.directory)
-    # Database data
-    hashes = create_hash_list(args.directory)
-    data = '\n'.join(hashes)
-    # Get encryption info
-    output = PBKDF2(password)
+    global DATABASE_TRIPLE
+    # Generate salt, key, iv
+    output = PBKDF2(None, password)
     # Parse output
-    output = output.stdout.split('\n')
+    output = output.stdout.rstrip().split('\n')
     salt, key, iv = (output[0].split('=')[1],
                      output[1].split('=')[1],
                      output[2].split('=')[1])
-    # Store info
-    DATABASE_INFO = salt, key, iv
-    # Encrypt the data
-    encrypt_AES_128_CBC(DATABASE_NAME, data, salt, key, iv)
-
-
-def read_database(args):
-    '''This function returns a list of hashes read from the encrypted database'''
+    # Store triple
+    DATABASE_TRIPLE = salt, key, iv
     # Go to directory
-    os.chdir(args.directory)
-    # Get info
-    salt, key, iv = DATABASE_INFO
+    os.chdir(directory)
+    # Database data
+    hashes = create_hash_list(directory)
+    # TODO: Sign hashes
+    data = '\n'.join(hashes)
+    # Encrypt the data
+    encrypt_AES_128_CBC(DATABASE_NAME, data, key, iv)
+
+
+def read_database(directory):
+    '''This function returns a list of hashes read from the encrypted database'''
+    # Get triple
+    salt, key, iv = DATABASE_TRIPLE
+    # Go to directory
+    os.chdir(directory)
     # Decrypt the data
-    output = decrypt_AES_128_CBC(DATABASE_NAME, salt, key, iv)
+    output = decrypt_AES_128_CBC(DATABASE_NAME, key, iv)
     # Return output
     return output.stdout.decode('utf-8').split('\n')
 
 
 def main_daemon(args):
     '''This function contains daemon program code'''
-    # Debug info
-    print("directory: " + args.directory, "daemon: " +
-          str(args.daemon), "remove: " + str(args.remove), sep='\n')
     # TODO: implement daemon (code that runs periodically)
 
 
 def main(args):
     '''This function contains interactive program code'''
-    # Debug info
-    print("directory: " + args.directory, "daemon: " +
-          str(args.daemon), "remove: " + str(args.remove), sep='\n')
-    # TODO: implement functionality
+    # Read password
     password = getpass.getpass()
-    create_database(args, password)
-    db = read_database(args)
+    # Create Database
+    create_database(args.directory, password)
+    # Read Database
+    db = read_database(args.directory)
+    # Debug info
     print(db)
 
 

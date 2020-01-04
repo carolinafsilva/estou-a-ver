@@ -138,6 +138,14 @@ def decrypt_AES_128_CBC(filename, key, iv):
         stdout=subprocess.PIPE)
     return output
 
+def decrypt_RSA(filename, key):
+    '''This function decrypts with RSA'''
+    output = subprocess.run(
+        ['openssl', 'rsautl', '-decrypt', '-in',
+            filename, '-inkey', key],
+        stdout=subprocess.PIPE)
+    return output
+
 
 def create_hash_list(directory):
     '''This function returns a list of hashes'''

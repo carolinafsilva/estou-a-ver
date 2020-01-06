@@ -37,11 +37,11 @@ PK_NAME = '.pk.pem'
 
 SALT_NAME = '.salt'
 
-PROGRAM_DESCRIPTION = 'Directory management command-line utility'
+PROGRAM_DESCRIPTION = 'Directory monitoring command-line utility'
 
 DIRECTORY_HELP = 'Specifies which directory to operate on (default=cwd)'
-DAEMON_HELP = 'Starts management as a daemon process'
-REMOVE_HELP = 'Removes management from the specified directory'
+DAEMON_HELP = 'Starts monitoring as a daemon process'
+REMOVE_HELP = 'Removes monitoring from the specified directory'
 
 MESSAGE_TITLE = 'Estou a Ver'
 

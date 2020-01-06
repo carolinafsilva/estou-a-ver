@@ -366,7 +366,7 @@ def monitor(is_daemon):
     db = read_database(args.directory)
     if not db == 'ERROR':
         # Verify Signatures
-        if not monitor_directory(args.directory, db, is_daemon):
+        if monitor_directory(args.directory, db, is_daemon):
             shutil.move('./' + DATABASE_NAME, './' + DATABASE_BACKUP)
             create_database(args.directory, password)
     else:
@@ -388,7 +388,7 @@ def main_daemon(args):
     # Generate key, iv
     DATABASE_TUPLE = PBKDF2(SALT, password)
     # Monitor
-    monitor(True)
+    monitor(False)
 
 
 def main(args):

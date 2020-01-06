@@ -17,7 +17,7 @@ import os
 
 PLATFORM = platform.system()
 
-DAEMON_SLEEP_TIME = 1
+DAEMON_SLEEP_TIME = 0
 
 DATABASE_TUPLE = None
 

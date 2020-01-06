@@ -28,6 +28,8 @@ SALT = None
 # ------------------------------------------------------------------------------
 # Strings
 
+DAEMON_LOG = '.daemon.log'
+
 DATABASE_NAME = '.database.aes'
 DATABASE_BACKUP = '.database_backup.aes'
 
@@ -414,9 +416,6 @@ if __name__ == "__main__":
     # If remove flag set
     if not args.remove:
 
-        # Go to directory
-        os.chdir(args.directory)
-
         # Read salt
         if os.path.isfile(SALT_NAME):
             f = open(SALT_NAME, 'r')
@@ -429,27 +428,34 @@ if __name__ == "__main__":
         if args.daemon:
 
             # Debug info
-            log = open('.daemon.log', 'w')
+            log = open(DAEMON_LOG, 'w')
+
+            # Start daemon
+            print('Started daemon')
 
             # Create Database
             if not os.path.isfile(DATABASE_NAME):
                 create_database(args.directory, password)
                 print('Directory is now being monitored')
 
-            # Start daemon
-            print('Started daemon')
             with daemon.DaemonContext(
                 stdout=log,
                 stderr=log
             ):
+                # Go to directory
+                os.chdir(args.directory)
+                # Run forever
                 while True:
                     main_daemon(args)
                     time.sleep(DAEMON_SLEEP_TIME)
         else:
+            # Go to directory
+            os.chdir(args.directory)
+            # Run
             main(args)
     else:
-        if os.path.exists('.daemon.log'):
-            os.remove('.daemon.log')
+        if os.path.exists(DAEMON_LOG):
+            os.remove(DAEMON_LOG)
         if os.path.exists(DATABASE_NAME):
             os.remove(DATABASE_NAME)
         if os.path.exists(DATABASE_BACKUP):

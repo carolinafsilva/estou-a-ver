@@ -16,21 +16,23 @@ import os
 
 PLATFORM = platform.system()
 
-DATABASE_NAME = '.database.aes'
-SALT_NAME = '.salt'
+DAEMON_SLEEP_TIME = 300
 
 DATABASE_TUPLE = None
 
 SALT = None
 
-DAEMON_SLEEP_TIME = 300
-
-# ------------------------------------------------------------------------------
-# Data Structures
-
-
 # ------------------------------------------------------------------------------
 # Strings
+
+DATABASE_NAME = '.database.aes'
+DATABASE_BACKUP = '.database_backup.aes'
+
+SKPK_NAME_AES = '.skpk.pem.aes'
+SKPK_NAME = '.skpk.pem'
+PK_NAME = '.pk.pem'
+
+SALT_NAME = '.salt'
 
 PROGRAM_DESCRIPTION = 'Directory management command-line utility'
 
@@ -44,7 +46,7 @@ REMOVE_HELP = 'Removes management from the specified directory'
 
 def get_files(directory):
     '''This function returns a list of files from the directory'''
-    return [f for f in os.listdir(directory) if os.path.isfile(f)]
+    return [f for f in os.listdir(directory) if not f[0] == '.' and os.path.isfile(f)]
 
 
 def get_arguments():
@@ -149,6 +151,17 @@ def encrypt_AES_128_CBC(filename, content, key, iv):
     return output
 
 
+def encrypt_AES_128_CBC_bytes(filename, content, key, iv):
+    '''This function encrypts with AES-128-CBC'''
+    output = subprocess.run(
+        ['openssl', 'enc', '-aes-128-cbc', '-K',
+            key, '-out', filename, '-iv', iv],
+        input=content,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL)
+    return output
+
+
 def decrypt_AES_128_CBC(filename, key, iv):
     '''This function decrypts with AES-128-CBC'''
     output = subprocess.run(
@@ -159,10 +172,20 @@ def decrypt_AES_128_CBC(filename, key, iv):
     return output
 
 
-def generate_RSA(size):
+def decrypt_AES_128_CBC_to_file(fin, fout, key, iv):
+    '''This function decrypts with AES-128-CBC'''
+    output = subprocess.run(
+        ['openssl', 'enc', '-aes-128-cbc', '-d', '-K',
+            key, '-in', fin, '-out', fout, '-iv', iv],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL)
+    return output
+
+
+def generate_RSA(filename, size):
     '''This function generates a RSA key pair'''
     output = subprocess.run(
-        ['openssl', 'genrsa', size],
+        ['openssl', 'genrsa', '-out', filename, size],
         stdout=subprocess.PIPE,
         stderr=subprocess.DEVNULL,
         universal_newlines=True)
@@ -172,8 +195,7 @@ def generate_RSA(size):
 def extract_pk_RSA(filename, key_pair):
     '''This function extracts a public key from a RSA key pair'''
     output = subprocess.run(
-        ['openssl', 'rsa', '-out', filename, '-pubout'],
-        input=key_pair,
+        ['openssl', 'rsa', '-in', key_pair, '-out', filename, '-pubout'],
         stdout=subprocess.PIPE,
         stderr=subprocess.DEVNULL,
         universal_newlines=True)
@@ -181,14 +203,12 @@ def extract_pk_RSA(filename, key_pair):
 
 
 def sign_RSA(sk, h):
-    # TODO: fix sk
     '''This function signs with RSA'''
     output = subprocess.run(
         ['openssl', 'rsautl', '-sign', '-inkey', sk],
-        input=h,
+        input=h.encode(),
         stdout=subprocess.PIPE,
-        stderr=subprocess.DEVNULL,
-        universal_newlines=True)
+        stderr=subprocess.DEVNULL)
     return output
 
 
@@ -198,14 +218,15 @@ def decrypt_signature_RSA(rsa_cipher, pk):
         ['openssl', 'rsautl', '-verify', '-inkey', pk, '-pubin'],
         input=rsa_cipher,
         stdout=subprocess.PIPE,
-        stderr=subprocess.DEVNULL,
-        universal_newlines=True)
+        stderr=subprocess.DEVNULL)
     return output
 
 
 def verify_RSA(filename, rsa_cipher, pk):
     '''This function verifies signatures'''
-    return SHA256(filename) == decrypt_signature_RSA(rsa_cipher, pk)
+    sha = SHA256(filename).stdout.rstrip()
+    sig = decrypt_signature_RSA(rsa_cipher, pk).stdout.decode('utf-8').rstrip()
+    return sha == sig
 
 
 def create_hash_list(directory):
@@ -221,38 +242,54 @@ def create_hash_list(directory):
     return hashes
 
 
-def create_signature_list(sk, hashes):
+def create_signature_list(hashes):
     '''This function returns a list of signatures'''
+    # Get tuple
+    key, iv = DATABASE_TUPLE
+    # Decrypt sk
+    decrypt_AES_128_CBC_to_file(SKPK_NAME_AES, SKPK_NAME, key, iv)
+    # Create list
     signed = []
     for filename, h in hashes:
-        output = sign_RSA(sk, h)
-        print(output)
+        output = sign_RSA(SKPK_NAME, h)
         signature = output.stdout
         signed.append((filename, signature))
+    # Encrypt sk
+    with open(SKPK_NAME, 'r') as f:
+        content = f.read()
+        encrypt_AES_128_CBC(SKPK_NAME_AES, content, key, iv)
     return signed
 
 
 def create_database(directory, password):
-    '''This function creates an encrypted database of file hashes'''
+    '''This function creates an encrypted database of signatures'''
     # Access global variables
     global DATABASE_TUPLE
     # Generate key, iv
     key, iv = PBKDF2(None, password)
-    # Generate rsa
-    output = generate_RSA('2048')
-    rsa = output.stdout
-    # Extract public key
-    extract_pk_RSA('.pk.pem', rsa)
     # Store tuple
     DATABASE_TUPLE = key, iv
+    # Generate rsa
+    generate_RSA(SKPK_NAME, '2048')
+    # Extract public key
+    extract_pk_RSA(PK_NAME, SKPK_NAME)
+    # Encrypt sk
+    with open(SKPK_NAME, 'r') as f:
+        content = f.read()
+        encrypt_AES_128_CBC(SKPK_NAME_AES, content, key, iv)
+    # TODO: delete SKPK_NAME
     # Get hashes
     hashes = create_hash_list(directory)
+
     # Sign hashes
-    signed = create_signature_list(rsa, hashes)
-    # Join string
-    signed = '\n'.join([d + "," + s for d, s in signed])
-    # Encrypt the data
-    encrypt_AES_128_CBC(DATABASE_NAME, signed, key, iv)
+    signed = create_signature_list(hashes)
+    # Join b string
+    signatures = b''
+    for d, s in signed:
+        signatures += d.encode() + b'\x01\x01\x01\x01' + \
+            s + b'\x00\x00\x00\x00'
+    # Encrypt the database
+    encrypt_AES_128_CBC_bytes(DATABASE_NAME, signatures, key, iv)
 
 
 def read_database(directory):
@@ -263,17 +300,40 @@ def read_database(directory):
     output = decrypt_AES_128_CBC(DATABASE_NAME, key, iv)
     # Return output
     try:
-        output = output.stdout.decode('utf-8').split('\n')
+        output = output.stdout
+        # Parse output
+        output = output.split(b'\x00\x00\x00\x00')
+        signed = []
+        for b in output:
+            signed.append(b.split(b'\x01\x01\x01\x01'))
+        signed.pop()
     except:
-        output = 'Incorrect password'
-    return output
+        signed = 'ERROR'
+    return signed
 
 
-def clone_database():
-    '''This function creates a clone backup for the database'''
-    srcPath = "../"+DATABASE_NAME[1:]        # fixed source path
-    destPath = '../.database_backup.aes'  # fixed destination path
-    shutil.copy(srcPath, destPath)
+def monitor_directory(directory, db):
+    '''This function verifies all signatures'''
+    files = get_files(directory)
+    changes = False
+    first = True
+    for f in files:
+        found = False
+        for filename, signature in db:
+            filename = filename.decode('utf-8')
+            if f == filename:
+                found = True
+                if not verify_RSA(f, signature, PK_NAME):
+                    print(f, 'was altered')
+                    changes = True
+            if filename not in files and first:
+                print(filename, 'was deleted')
+                changes = True
+        first = False
+        if not found:
+            print(f, 'was added')
+            changes = True
+    return changes
 
 
 def main_daemon(args):
@@ -289,15 +349,26 @@ def main(args):
     # Create Database
     if not os.path.isfile(DATABASE_NAME):
         create_database(args.directory, password)
-    # Read Database
-    db = read_database(args.directory)
-    # Debug info
-    print(db)
+        print('Directory is now being monitored')
+    else:
+        # Read Database
+        db = read_database(args.directory)
+        if not db == 'ERROR':
+            # Verify Signatures
+            if not monitor_directory(args.directory, db):
+                shutil.move('./' + DATABASE_NAME, './' + DATABASE_BACKUP)
+                create_database(args.directory, password)
+        else:
+            print('Database integrity compromised')
+            if os.path.isfile(DATABASE_BACKUP):
+                ans = input('Do you wish to recover the last backup? [Y/n] ')
+                ans = ans.lower()
+                if not ans == 'n':
+                    shutil.move('./' + DATABASE_BACKUP, './' + DATABASE_NAME)
 
 
 # ------------------------------------------------------------------------------
 # Entry Point
-
 if __name__ == "__main__":
 
     # Get arguments

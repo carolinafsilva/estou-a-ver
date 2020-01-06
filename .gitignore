@@ -3,8 +3,11 @@
 
 # Project
 .database.aes
+.database_backup.aes
 .salt
 .pk.pem
+.skpk.pem
+.skpk.pem.aes
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

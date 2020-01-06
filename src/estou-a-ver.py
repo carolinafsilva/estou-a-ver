@@ -355,20 +355,22 @@ def monitor_directory(directory, db, is_daemon):
                 found = True
                 if not verify_RSA(f, signature, PK_NAME):
                     if is_daemon:
-                        warn_user(f + ' was altered')
+                        warn_user('file ' + f +
+                                  ' was altered in ' + directory)
                     else:
                         print(f, 'was altered')
                     changes = True
             if filename not in files and first:
                 if is_daemon:
-                    warn_user(filename + ' was deleted')
+                    warn_user('file ' + filename +
+                              ' was deleted in ' + directory)
                 else:
                     print(filename, 'was deleted')
                 changes = True
         first = False
         if not found:
             if is_daemon:
-                warn_user(f + ' was added')
+                warn_user('file ' + f + ' was added in ' + directory)
             else:
                 print(f, 'was added')
             changes = True
@@ -385,7 +387,7 @@ def monitor(is_daemon):
             create_database(args.directory, password)
     else:
         if is_daemon:
-            warn_user('Datavase integrity compromised')
+            warn_user('Database integrity compromised')
         else:
             print('Database integrity compromised')
             if os.path.isfile(DATABASE_BACKUP):

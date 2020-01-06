@@ -374,30 +374,46 @@ if __name__ == "__main__":
     # Get arguments
     args = get_arguments()
 
-    # Go to directory
-    os.chdir(args.directory)
+    # If remove flag set
+    if not args.remove:
 
-    # Read salt
-    if os.path.isfile(SALT_NAME):
-        f = open(SALT_NAME, 'r')
-        SALT = f.read()
+        # Go to directory
+        os.chdir(args.directory)
 
-    # Read password
-    password = getpass.getpass()
+        # Read salt
+        if os.path.isfile(SALT_NAME):
+            f = open(SALT_NAME, 'r')
+            SALT = f.read()
 
-    # If daemon flag set
-    if args.daemon:
+        # Read password
+        password = getpass.getpass()
 
-        # Debug info
-        log = open(os.getcwd() + '/daemon.log', 'w')
+        # If daemon flag set
+        if args.daemon:
 
-        # Start daemon
-        with daemon.DaemonContext(
-            stdout=log,
-            stderr=log
-        ):
-            while True:
-                main_daemon(args)
-                time.sleep(DAEMON_SLEEP_TIME)
+            # Debug info
+            log = open(os.getcwd() + '/daemon.log', 'w')
+
+            # Start daemon
+            with daemon.DaemonContext(
+                stdout=log,
+                stderr=log
+            ):
+                while True:
+                    main_daemon(args)
+                    time.sleep(DAEMON_SLEEP_TIME)
+        else:
+            main(args)
     else:
-        main(args)
+        if os.path.exists(DATABASE_NAME):
+            os.remove(DATABASE_NAME)
+        if os.path.exists(DATABASE_BACKUP):
+            os.remove(DATABASE_BACKUP)
+        if os.path.exists(PK_NAME):
+            os.remove(PK_NAME)
+        if os.path.exists(SALT_NAME):
+            os.remove(SALT_NAME)
+        if os.path.exists(SKPK_NAME):
+            os.remove(SKPK_NAME)
+        if os.path.exists(SKPK_NAME_AES):
+            os.remove(SKPK_NAME_AES)

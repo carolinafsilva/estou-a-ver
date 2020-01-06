@@ -50,7 +50,7 @@ MESSAGE_TITLE = 'Estou a Ver'
 
 
 def warn_user(message):
-    '''This function notifies the user'''
+    '''This function sends a notification to the user with the given message'''
     if PLATFORM == 'Darwin':
         command = "'display notification \"" + \
             message + "\" with title \"" + MESSAGE_TITLE + "\"'"
@@ -71,7 +71,7 @@ def warn_user(message):
 
 
 def SHA256(filename):
-    '''This function returns the SHA256 of the filename'''
+    '''This function returns the SHA256 of the given filename'''
     output = subprocess.run(
         ['openssl', 'dgst', '-sha256', filename],
         stdout=subprocess.PIPE,
@@ -81,7 +81,7 @@ def SHA256(filename):
 
 
 def PBKDF2(salt, password):
-    '''This function returns key, iv tuple'''
+    '''This function generates and returns a (key, iv) tuple from the given password and salt\n\nIt also saves (salt, key, iv) tuple to program memory'''
     if salt == None:
         # Libressl
         if PLATFORM == 'Darwin':
@@ -131,7 +131,7 @@ def PBKDF2(salt, password):
 
 
 def encrypt_AES_128_CBC(filename, content, key, iv):
-    '''This function encrypts with AES-128-CBC'''
+    '''This function encrypts content to filename with AES-128-CBC'''
     output = subprocess.run(
         ['openssl', 'enc', '-aes-128-cbc', '-K',
             key, '-out', filename, '-iv', iv],
@@ -143,7 +143,7 @@ def encrypt_AES_128_CBC(filename, content, key, iv):
 
 
 def encrypt_AES_128_CBC_bytes(filename, content, key, iv):
-    '''This function encrypts with AES-128-CBC'''
+    '''This function encrypts byte content to filename with AES-128-CBC'''
     output = subprocess.run(
         ['openssl', 'enc', '-aes-128-cbc', '-K',
             key, '-out', filename, '-iv', iv],
@@ -154,7 +154,7 @@ def encrypt_AES_128_CBC_bytes(filename, content, key, iv):
 
 
 def decrypt_AES_128_CBC(filename, key, iv):
-    '''This function decrypts with AES-128-CBC'''
+    '''This function decrypts filename with AES-128-CBC'''
     output = subprocess.run(
         ['openssl', 'enc', '-aes-128-cbc', '-d', '-K',
             key, '-in', filename, '-iv', iv],
@@ -164,7 +164,7 @@ def decrypt_AES_128_CBC(filename, key, iv):
 
 
 def decrypt_AES_128_CBC_to_file(fin, fout, key, iv):
-    '''This function decrypts with AES-128-CBC'''
+    '''This function decrypts fin to fout with AES-128-CBC'''
     output = subprocess.run(
         ['openssl', 'enc', '-aes-128-cbc', '-d', '-K',
             key, '-in', fin, '-out', fout, '-iv', iv],
@@ -174,7 +174,7 @@ def decrypt_AES_128_CBC_to_file(fin, fout, key, iv):
 
 
 def generate_RSA(filename, size):
-    '''This function generates a RSA key pair'''
+    '''This function generates a RSA key pair with given size to filename'''
     output = subprocess.run(
         ['openssl', 'genrsa', '-out', filename, size],
         stdout=subprocess.PIPE,
@@ -184,7 +184,7 @@ def generate_RSA(filename, size):
 
 
 def extract_pk_RSA(filename, key_pair):
-    '''This function extracts a public key from a RSA key pair'''
+    '''This function extracts a public key from a RSA key pair to filename'''
     output = subprocess.run(
         ['openssl', 'rsa', '-in', key_pair, '-out', filename, '-pubout'],
         stdout=subprocess.PIPE,
@@ -193,18 +193,18 @@ def extract_pk_RSA(filename, key_pair):
     return output
 
 
-def sign_RSA(filename, h):
-    '''This function signs with RSA'''
+def sign_RSA(filename, content):
+    '''This function signs content with RSA'''
     output = subprocess.run(
         ['openssl', 'rsautl', '-sign', '-inkey', filename],
-        input=h.encode(),
+        input=content.encode(),
         stdout=subprocess.PIPE,
         stderr=subprocess.DEVNULL)
     return output
 
 
 def verify_signature_RSA(content, pk):
-    '''This function verifies the digital signature'''
+    '''This function verifies the digital signature of content'''
     output = subprocess.run(
         ['openssl', 'rsautl', '-verify', '-inkey', pk, '-pubin'],
         input=content,
@@ -218,7 +218,7 @@ def verify_signature_RSA(content, pk):
 
 
 def get_files(directory):
-    '''This function returns a list of files from the directory'''
+    '''This function returns a list of non hidden files from the directory'''
     return [f for f in os.listdir(directory) if not f[0] == '.' and os.path.isfile(f)]
 
 
@@ -253,14 +253,14 @@ def get_arguments():
 
 
 def verify_RSA(filename, rsa_cipher, pk):
-    '''This function verifies signatures'''
+    '''This function verifies filename signature'''
     sha = SHA256(filename).stdout.rstrip()
     sig = verify_signature_RSA(rsa_cipher, pk).stdout.decode('utf-8').rstrip()
     return sha == sig
 
 
 def create_hash_list(directory):
-    '''This function returns a list of filename, hash tuples'''
+    '''This function returns a list of (filename, hash) tuples'''
     hashes = []
     # For each file in directory
     for filename in get_files(directory):
@@ -273,7 +273,7 @@ def create_hash_list(directory):
 
 
 def create_signature_list(hashes):
-    '''This function returns a list of signatures'''
+    '''This function returns a list of (filename, signature) tuples'''
     # Get tuple
     key, iv = DATABASE_TUPLE
     # Decrypt sk
@@ -316,6 +316,7 @@ def create_database(directory, password):
     # Join b string
     signatures = b''
     for d, s in signed:
+        # Encode signatures
         signatures += d.encode() + b'\x01\x01\x01\x01' + \
             s + b'\x00\x00\x00\x00'
     # Encrypt the database
@@ -323,7 +324,7 @@ def create_database(directory, password):
 
 
 def read_database(directory):
-    '''This function returns a list of hashes read from the encrypted database'''
+    '''This function returns a list of signatures read from the encrypted database'''
     # Get tuple
     key, iv = DATABASE_TUPLE
     # Decrypt the data
@@ -342,8 +343,8 @@ def read_database(directory):
     return signed
 
 
-def monitor_directory(directory, db, is_daemon):
-    '''This function verifies all signatures'''
+def check_directory(directory, db, is_daemon):
+    '''This function checks directory for changes, returns a boolean'''
     files = get_files(directory)
     changes = False
     first = True
@@ -378,11 +379,12 @@ def monitor_directory(directory, db, is_daemon):
 
 
 def monitor(is_daemon):
+    '''This function monitors all changes in directory'''
     # Read Database
     db = read_database(args.directory)
     if not db == 'ERROR':
         # Verify Signatures
-        if monitor_directory(args.directory, db, is_daemon):
+        if check_directory(args.directory, db, is_daemon):
             shutil.move('./' + DATABASE_NAME, './' + DATABASE_BACKUP)
             create_database(args.directory, password)
     else:
@@ -408,7 +410,7 @@ def main_daemon(args):
 
 
 def main(args):
-    '''This function contains interactive program code'''
+    '''This function contains interactive mode program code'''
     # Access
     global DATABASE_TUPLE
     # Generate key, iv

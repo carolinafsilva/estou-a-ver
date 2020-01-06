@@ -1,8 +1,6 @@
 # ------------------------------------------------------------------------------
 # Libraries
 
-from tkinter import messagebox
-
 import subprocess
 import platform
 import argparse
@@ -354,11 +352,7 @@ def monitor_directory(directory, db, is_daemon):
 
 def warn_user(message):
     '''This function notifies the user'''
-    # Hide main window
-    root = tkinter.Tk()
-    root.withdraw()
-    # Display info
-    messagebox.showinfo(MESSAGE_TITLE, message)
+    pass
 
 
 def monitor(is_daemon):

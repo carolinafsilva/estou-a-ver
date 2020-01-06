@@ -1,9 +1,12 @@
 # ------------------------------------------------------------------------------
 # Libraries
 
+from tkinter import messagebox
+
 import subprocess
 import platform
 import argparse
+import tkinter
 import getpass
 import daemon
 import shutil
@@ -16,7 +19,7 @@ import os
 
 PLATFORM = platform.system()
 
-DAEMON_SLEEP_TIME = 300
+DAEMON_SLEEP_TIME = 10
 
 DATABASE_TUPLE = None
 
@@ -39,6 +42,8 @@ PROGRAM_DESCRIPTION = 'Directory management command-line utility'
 DIRECTORY_HELP = 'Specifies which directory to operate on (default=cwd)'
 DAEMON_HELP = 'Starts management as a daemon process'
 REMOVE_HELP = 'Removes management from the specified directory'
+
+MESSAGE_TITLE = 'Estou a Ver'
 
 # ------------------------------------------------------------------------------
 # Function Definitions
@@ -133,8 +138,8 @@ def PBKDF2(salt, password):
     global SALT
     SALT = salt
     # Update .salt file
-    f = open(SALT_NAME, 'w')
-    f.write(salt)
+    with open(SALT_NAME, 'w') as f:
+        f.write(salt)
     # Return tuple
     return key, iv
 
@@ -312,7 +317,7 @@ def read_database(directory):
     return signed
 
 
-def monitor_directory(directory, db):
+def monitor_directory(directory, db, is_daemon):
     '''This function verifies all signatures'''
     files = get_files(directory)
     changes = False
@@ -324,40 +329,47 @@ def monitor_directory(directory, db):
             if f == filename:
                 found = True
                 if not verify_RSA(f, signature, PK_NAME):
-                    print(f, 'was altered')
+                    if is_daemon:
+                        warn_user(f + ' was altered')
+                    else:
+                        print(f, 'was altered')
                     changes = True
             if filename not in files and first:
-                print(filename, 'was deleted')
+                if is_daemon:
+                    warn_user(filename + ' was deleted')
+                else:
+                    print(filename, 'was deleted')
                 changes = True
         first = False
         if not found:
-            print(f, 'was added')
+            if is_daemon:
+                warn_user(f + ' was added')
+            else:
+                print(f, 'was added')
             changes = True
     return changes
 
 
-def main_daemon(args):
-    '''This function contains daemon program code'''
-    # TODO: implement daemon (code that runs periodically)
+def warn_user(message):
+    '''This function notifies the user'''
+    # Hide main window
+    root = tkinter.Tk()
+    root.withdraw()
+    # Display info
+    messagebox.showinfo(MESSAGE_TITLE, message)
 
 
-def main(args):
-    '''This function contains interactive program code'''
-    # Access
-    global DATABASE_TUPLE
-    DATABASE_TUPLE = PBKDF2(SALT, password)
-    # Create Database
-    if not os.path.isfile(DATABASE_NAME):
-        create_database(args.directory, password)
-        print('Directory is now being monitored')
+def monitor(is_daemon):
+    # Read Database
+    db = read_database(args.directory)
+    if not db == 'ERROR':
+        # Verify Signatures
+        if not monitor_directory(args.directory, db, is_daemon):
+            shutil.move('./' + DATABASE_NAME, './' + DATABASE_BACKUP)
+            create_database(args.directory, password)
     else:
-        # Read Database
-        db = read_database(args.directory)
-        if not db == 'ERROR':
-            # Verify Signatures
-            if not monitor_directory(args.directory, db):
-                shutil.move('./' + DATABASE_NAME, './' + DATABASE_BACKUP)
-                create_database(args.directory, password)
+        if is_daemon:
+            warn_user('Datavase integrity compromised')
         else:
             print('Database integrity compromised')
             if os.path.isfile(DATABASE_BACKUP):
@@ -365,6 +377,31 @@ def main(args):
                 ans = ans.lower()
                 if not ans == 'n':
                     shutil.move('./' + DATABASE_BACKUP, './' + DATABASE_NAME)
+
+
+def main_daemon(args):
+    '''This function contains daemon program code'''
+    # Access
+    global DATABASE_TUPLE
+    # Generate key, iv
+    DATABASE_TUPLE = PBKDF2(SALT, password)
+    # Monitor
+    monitor(True)
+
+
+def main(args):
+    '''This function contains interactive program code'''
+    # Access
+    global DATABASE_TUPLE
+    # Generate key, iv
+    DATABASE_TUPLE = PBKDF2(SALT, password)
+    # Create Database
+    if not os.path.isfile(DATABASE_NAME):
+        create_database(args.directory, password)
+        print('Directory is now being monitored')
+    else:
+        # Monitor
+        monitor(False)
 
 
 # ------------------------------------------------------------------------------
@@ -392,9 +429,15 @@ if __name__ == "__main__":
         if args.daemon:
 
             # Debug info
-            log = open(os.getcwd() + '/daemon.log', 'w')
+            log = open('.daemon.log', 'w')
+
+            # Create Database
+            if not os.path.isfile(DATABASE_NAME):
+                create_database(args.directory, password)
+                print('Directory is now being monitored')
 
             # Start daemon
+            print('Started daemon')
             with daemon.DaemonContext(
                 stdout=log,
                 stderr=log
@@ -405,6 +448,8 @@ if __name__ == "__main__":
         else:
             main(args)
     else:
+        if os.path.exists('.daemon.log'):
+            os.remove('.daemon.log')
         if os.path.exists(DATABASE_NAME):
             os.remove(DATABASE_NAME)
         if os.path.exists(DATABASE_BACKUP):

@@ -1,10 +1,10 @@
+#! /usr/bin/env python3
 # ------------------------------------------------------------------------------
 # Libraries
 
 import subprocess
 import platform
 import argparse
-import tkinter
 import getpass
 import daemon
 import shutil
@@ -46,42 +46,28 @@ REMOVE_HELP = 'Removes management from the specified directory'
 MESSAGE_TITLE = 'Estou a Ver'
 
 # ------------------------------------------------------------------------------
-# Function Definitions
+# System commands
 
 
-def get_files(directory):
-    '''This function returns a list of files from the directory'''
-    return [f for f in os.listdir(directory) if not f[0] == '.' and os.path.isfile(f)]
-
-
-def get_arguments():
-    '''This function returns options parsed from the commandline'''
-    parser = argparse.ArgumentParser(
-        description=PROGRAM_DESCRIPTION
-    )
-
-    parser.add_argument(
-        '-dir', '--directory',
-        dest='directory',
-        action='store',
-        metavar='<path>',
-        default=os.getcwd(),
-        help=DIRECTORY_HELP
-    )
-    parser.add_argument(
-        '-d', '--daemon',
-        dest='daemon',
-        action='store_true',
-        help=DAEMON_HELP
-    )
-    parser.add_argument(
-        '-r', '--remove',
-        dest='remove',
-        action='store_true',
-        help=REMOVE_HELP
-    )
-
-    return parser.parse_args()
+def warn_user(message):
+    '''This function notifies the user'''
+    if PLATFORM == 'Darwin':
+        command = "'display notification \"" + \
+            message + "\" with title \"Estou a Ver\"'"
+        output = subprocess.run(
+            ['osascript', '-e', command],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            universal_newlines=True)
+        print(output)
+        return output
+    elif PLATFORM == 'Linux':
+        output = subprocess.run(
+            ['notify-send', message],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            universal_newlines=True)
+        return output
 
 
 def SHA256(filename):
@@ -207,30 +193,69 @@ def extract_pk_RSA(filename, key_pair):
     return output
 
 
-def sign_RSA(sk, h):
+def sign_RSA(filename, h):
     '''This function signs with RSA'''
     output = subprocess.run(
-        ['openssl', 'rsautl', '-sign', '-inkey', sk],
+        ['openssl', 'rsautl', '-sign', '-inkey', filename],
         input=h.encode(),
         stdout=subprocess.PIPE,
         stderr=subprocess.DEVNULL)
     return output
 
 
-def decrypt_signature_RSA(rsa_cipher, pk):
-    '''This function decrypts the digital signature'''
+def verify_signature_RSA(content, pk):
+    '''This function verifies the digital signature'''
     output = subprocess.run(
         ['openssl', 'rsautl', '-verify', '-inkey', pk, '-pubin'],
-        input=rsa_cipher,
+        input=content,
         stdout=subprocess.PIPE,
         stderr=subprocess.DEVNULL)
     return output
 
 
+# ------------------------------------------------------------------------------
+# Function Definitions
+
+
+def get_files(directory):
+    '''This function returns a list of files from the directory'''
+    return [f for f in os.listdir(directory) if not f[0] == '.' and os.path.isfile(f)]
+
+
+def get_arguments():
+    '''This function returns options parsed from the commandline'''
+    parser = argparse.ArgumentParser(
+        description=PROGRAM_DESCRIPTION
+    )
+
+    parser.add_argument(
+        '-dir', '--directory',
+        dest='directory',
+        action='store',
+        metavar='<path>',
+        default=os.getcwd(),
+        help=DIRECTORY_HELP
+    )
+    parser.add_argument(
+        '-d', '--daemon',
+        dest='daemon',
+        action='store_true',
+        help=DAEMON_HELP
+    )
+    parser.add_argument(
+        '-r', '--remove',
+        dest='remove',
+        action='store_true',
+        help=REMOVE_HELP
+    )
+
+    return parser.parse_args()
+
+
 def verify_RSA(filename, rsa_cipher, pk):
     '''This function verifies signatures'''
     sha = SHA256(filename).stdout.rstrip()
-    sig = decrypt_signature_RSA(rsa_cipher, pk).stdout.decode('utf-8').rstrip()
+    sig = verify_signature_RSA(rsa_cipher, pk).stdout.decode('utf-8').rstrip()
     return sha == sig
 
 
@@ -350,11 +375,6 @@ def monitor_directory(directory, db, is_daemon):
     return changes
 
 
-def warn_user(message):
-    '''This function notifies the user'''
-    pass
-
-
 def monitor(is_daemon):
     # Read Database
     db = read_database(args.directory)
@@ -382,7 +402,7 @@ def main_daemon(args):
     # Generate key, iv
     DATABASE_TUPLE = PBKDF2(SALT, password)
     # Monitor
-    monitor(False)
+    monitor(True)
 
 
 def main(args):

@@ -53,7 +53,7 @@ def warn_user(message):
     '''This function notifies the user'''
     if PLATFORM == 'Darwin':
         command = "'display notification \"" + \
-            message + "\" with title \"Estou a Ver\"'"
+            message + "\" with title \"" + MESSAGE_TITLE + "\"'"
         output = subprocess.run(
             ['osascript', '-e', command],
             stdout=subprocess.PIPE,
@@ -63,7 +63,7 @@ def warn_user(message):
         return output
     elif PLATFORM == 'Linux':
         output = subprocess.run(
-            ['notify-send', message],
+            ['notify-send', MESSAGE_TITLE, message],
             stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,
             universal_newlines=True)

@@ -359,21 +359,21 @@ def check_directory(directory, db, is_daemon):
                         warn_user('file ' + f +
                                   ' was altered in ' + directory)
                     else:
-                        print(f, 'was altered')
+                        print('file', f, 'was altered')
                     changes = True
             if filename not in files and first:
                 if is_daemon:
                     warn_user('file ' + filename +
                               ' was deleted in ' + directory)
                 else:
-                    print(filename, 'was deleted')
+                    print('file', filename, 'was deleted')
                 changes = True
         first = False
         if not found:
             if is_daemon:
                 warn_user('file ' + f + ' was added in ' + directory)
             else:
-                print(f, 'was added')
+                print('file', f, 'was added')
             changes = True
     return changes
 
